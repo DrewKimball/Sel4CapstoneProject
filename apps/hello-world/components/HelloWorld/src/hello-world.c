@@ -9,6 +9,9 @@
 #include <stdlib.h>
 
 int run(void) {
-  printf("Hello World\n");
+  char* buf = (char*)malloc(20);
+  sprintf(buf, "Hello World!\n");
+  printf("%s", buf);
+  free(buf);
   return 0;
 }
