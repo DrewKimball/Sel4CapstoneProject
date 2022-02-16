@@ -6,9 +6,14 @@
 
 cmake_minimum_required(VERSION 3.7.2)
 
+FindOpenSSL()
+message(STATUS "Current list dir: ${CMAKE_CURRENT_LIST_DIR}")
+#set(OPENSSL_ROOT_DIR 
+
 find_package(camkes-tool REQUIRED)
 find_package(global-components REQUIRED)
 find_package(sel4_projects_libs REQUIRED)
+find_package(openssl REQUIRED)
 
 set(KernelRootCNodeSizeBits 17 CACHE STRING "")
 
