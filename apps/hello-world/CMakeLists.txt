@@ -6,12 +6,9 @@
 
 cmake_minimum_required(VERSION 3.7.2)
 
-include(FindOpenSSL)
-
 find_package(camkes-tool REQUIRED)
 find_package(global-components REQUIRED)
 find_package(sel4_projects_libs REQUIRED)
-find_package(openssl REQUIRED)
 
 set(KernelRootCNodeSizeBits 17 CACHE STRING "")
 
@@ -25,10 +22,9 @@ endfunction()
 
 project(hello-world C)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${OPENSSL_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} OpenSSL::SSL OpenSSL::Crypto)
+set(aes_path "${CMAKE_SOURCE_DIR}/../../projects/aes")
 
-DeclareCAmkESComponent(HelloWorld SOURCES components/HelloWorld/src/hello-world.c LIBS sel4bench)
+DeclareCAmkESComponent(HelloWorld SOURCES components/HelloWorld/src/hello-world.c ${aes_path}/aes.c INCLUDES ${aes_path})
 DeclareCAmkESRootserver(hello-world.camkes)
 
 GenerateCAmkESRootserver()

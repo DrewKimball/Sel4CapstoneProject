@@ -19,9 +19,6 @@ list(
 
 set(NANOPB_SRC_ROOT_FOLDER "${project_dir}/tools/nanopb" CACHE INTERNAL "")
 set(BBL_PATH ${project_dir}/tools/riscv-pk CACHE STRING "BBL Folder location")
-set(OPENSSL_ROOT_DIR "${project_dir}/projects/openssl")
-set(OPENSSL_CRYPTO_LIBRARY "${project_dir}/projects/openssl/crypto")
-set(OPENSSL_INCLUDE_DIR "${project_dir}/projects/openssl/include")
 
 set(SEL4_CONFIG_DEFAULT_ADVANCED ON)
 
