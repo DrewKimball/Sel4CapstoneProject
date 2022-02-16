@@ -20,11 +20,23 @@ function(includeGlobalComponents)
     global_components_import_project()
 endfunction()
 
-project(hello-world C)
+project(hello-world C CXX)
 
-set(aes_path "${CMAKE_SOURCE_DIR}/../../projects/aes")
+set(projects_dir "${CMAKE_SOURCE_DIR}/../../projects")
+set(aes_path "${projects_dir}/aes")
+set(tls_path "${projects_dir}/tls")
 
-DeclareCAmkESComponent(HelloWorld SOURCES components/HelloWorld/src/hello-world.c ${aes_path}/aes.c INCLUDES ${aes_path})
+DeclareCAmkESComponent(
+    HelloWorld 
+    SOURCES 
+        components/HelloWorld/src/hello-world.c 
+        ${aes_path}/aes.c 
+        ${tls_path}/src/aes/aes128.cpp
+    INCLUDES 
+        ${aes_path}
+        ${tls_path}/include
+        ${tls_path}/include/aes
+)
 DeclareCAmkESRootserver(hello-world.camkes)
 
 GenerateCAmkESRootserver()
