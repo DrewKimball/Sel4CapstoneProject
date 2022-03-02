@@ -23,17 +23,16 @@ endfunction()
 project(hello-world C CXX)
 
 set(projects_dir "${CMAKE_SOURCE_DIR}/../../projects")
-set(aes_path "${projects_dir}/aes")
+set(rsa_path "${projects_dir}/rsa")
 set(crypto_path "${projects_dir}/crypto")
 
 DeclareCAmkESComponent(
     HelloWorld 
     SOURCES 
-        components/HelloWorld/src/hello-world.c 
-        ${aes_path}/aes.c 
+        components/HelloWorld/src/hello-world.c ${crypto_path}/aes.c
     INCLUDES 
-        ${aes_path}
-        ${crypto_path}/include
+        ${rsa_path}
+        ${crypto_path}
 )
 DeclareCAmkESRootserver(hello-world.camkes)
 
