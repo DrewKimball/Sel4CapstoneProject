@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <aes.h>
-#include <rsa.h>
+#include <libtomcrypt.c>
 
 int run(void) {
   printf("\nTesting Crypto Library:\n\n");
@@ -56,45 +56,33 @@ int run(void) {
   } else {
     printf("\nFailed!\n");
   }
-  printf("\nTesting RSA Library\n");
-  struct public_key_class pub[1];
-  struct private_key_class priv[1];
-  rsa_gen_keys(pub, priv, PRIME_SOURCE_FILE);
-
-  printf("Private Key:\n Modulus: %lld\n Exponent: %lld\n", (long long)priv->modulus, (long long) priv->exponent);
-  printf("Public Key:\n Modulus: %lld\n Exponent: %lld\n", (long long)pub->modulus, (long long) pub->exponent);
-  
-  char message[] = "123abc";
-  int i;
-
-  printf("Original:\n");
-  for(i=0; i < strlen(message); i++){
-    printf("%lld\n", (long long)message[i]);
-  }  
-  
-  long long *encrypted = rsa_encrypt(message, sizeof(message), pub);
-  if (!encrypted){
-    fprintf(stderr, "Error in encryption!\n");
+  printf("\nTesting tlse Library\n");
+  unsigned char* ptext = "blah blah blah";
+  printf("Plaintext = %s\n", ptext);
+  unsigned char output[65];
+  for (int i = 0; i < 65; i++)
+    output[i] = 0;
+  register_hash(&sha512_desc);
+  hash_state state;
+  int ok;
+  ok = sha512_init(&state);
+  if (ok != CRYPT_OK) {
+    printf("Failed sha512_init\n");
     return 1;
   }
-  printf("Encrypted:\n");
-  for(i=0; i < strlen(message); i++){
-    printf("%lld\n", (long long)encrypted[i]);
-  }  
-  
-  char *decrypted = rsa_decrypt(encrypted, 8*sizeof(message), priv);
-  if (!decrypted){
-    fprintf(stderr, "Error in decryption!\n");
+  ok = sha512_process(&state, ptext, strlen(ptext));
+  if (ok != CRYPT_OK) {
+    printf("Failed sha512_process\n");
     return 1;
   }
-  printf("Decrypted:\n");
-  for(i=0; i < strlen(message); i++){
-    printf("%lld\n", (long long)decrypted[i]);
-  }  
-  
-  printf("\n");
-  free(encrypted);
-  free(decrypted);
-  printf("\nDone\n");
+  ok = sha512_done(&state, output);
+  if (ok != CRYPT_OK) {
+    printf("Failed sha512_done\n");
+    return 1;
+  }
+  printf("Hash: ");
+  for(int idx = 0; idx < 64; idx++)
+    printf("%02x", output[idx]);
+  printf("\n\nDone\n");
   return 0;
 }
