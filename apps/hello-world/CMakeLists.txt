@@ -29,7 +29,7 @@ set(crypto_path "${projects_dir}/crypto")
 DeclareCAmkESComponent(
     HelloWorld 
     SOURCES 
-        components/HelloWorld/src/hello-world.c ${crypto_path}/aes.c
+        components/HelloWorld/src/hello-world.c ${crypto_path}/aes.c ${rsa_path}/rsa.c ${rsa_path}/primes.txt
     INCLUDES 
         ${rsa_path}
         ${crypto_path}
