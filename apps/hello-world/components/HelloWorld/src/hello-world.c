@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <aes.h>
-#include <aes128.h>
+#include <rsa.h.in>
+#include <randapi.h>
 
 int run(void) {
   printf("\nTesting Tiny AES Library:\n");
@@ -26,29 +27,86 @@ int run(void) {
   AES_ECB_encrypt(&ctx, message);
   for (int i = 0; i < BLOCK_LEN; i++)
     printf("%02X", message[i]);
-  printf("\nTesting Tiny TLS Library:.\n");
-    uint8_t iv[12] =  { 0x51, 0x75, 0x3c, 0x65, 0x80, 0xc2, 0x72, 0x6f, 0x20, 0x71, 0x84, 0x14 };
-    uint8_t aad[12] = { 0x80, 0x40, 0xf1, 0x7b, 0x80, 0x41, 0xf8, 0xd3, 0x55, 0x01, 0xa0, 0xb2 };
-    uint8_t key[16] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
-    uint8_t ptxt[38] = {
-        0x47, 0x61, 0x6c, 0x6c, 0x69, 0x61, 0x20, 0x65, 0x73, 0x74, 0x20, 0x6f, 0x6d, 0x6e, 0x69, 0x73,
-        0x20, 0x64, 0x69, 0x76, 0x69, 0x73, 0x61, 0x20, 0x69, 0x6e, 0x20, 0x70, 0x61, 0x72, 0x74, 0x65,
-        0x73, 0x20, 0x74, 0x72, 0x65, 0x73 };
-    const uint8_t ctxt[38]{
-        0xf2, 0x4d, 0xe3, 0xa3, 0xfb, 0x34, 0xde, 0x6c, 0xac, 0xba, 0x86, 0x1c, 0x9d, 0x7e, 0x4b, 0xca,
-        0xbe, 0x63, 0x3b, 0xd5, 0x0d, 0x29, 0x4e, 0x6f, 0x42, 0xa5, 0xf4, 0x7a, 0x51, 0xc7, 0xd1, 0x9b,
-        0x36, 0xde, 0x3a, 0xdf, 0x88, 0x33 };
-    const uint8_t ctag[16]{ 0x89, 0x9d, 0x7f, 0x27, 0xbe, 0xb1, 0x6a, 0x91, 0x52, 0xcf, 0x76, 0x5e, 0xe4, 0x39, 0x0c, 0xce };
+  printf("\nTesting Cryptography Library:\n");
+      int i;
+    unsigned long ran;
+    char m[RFS_WWW],ml[RFS_WWW],c[RFS_WWW],e[RFS_WWW],s[RFS_WWW],raw[100];
+    rsa_public_key_WWW pub;
+    rsa_private_key_WWW priv;
+    csprng RNG;
+    octet M= {0,sizeof(m),m};
+    octet ML= {0,sizeof(ml),ml};
+    octet C= {0,sizeof(c),c};
+    octet E= {0,sizeof(e),e};
+    octet S= {0,sizeof(s),s};
+    octet RAW= {0,sizeof(raw),raw};
 
-    uint8_t ivExp[8];
-    uint8_t stxt[38];
-    uint8_t stag[16];
-    memcpy(stxt, ptxt, sizeof(ptxt));
+    time((time_t *)&ran);
 
-    Aes128Gcm cipher(key, iv);
-    int r = 0, i=0;
-    r = cipher.Encrypt(stxt, sizeof(ctxt), ivExp, stag, aad, 12);
-  printf("%s\n", stxt);
+    RAW.len=100;				/* fake random seed source */
+    RAW.val[0]=ran;
+    RAW.val[1]=ran>>8;
+    RAW.val[2]=ran>>16;
+    RAW.val[3]=ran>>24;
+    for (i=0; i<100; i++) RAW.val[i]=i;
+
+    CREATE_CSPRNG(&RNG,&RAW);   /* initialise strong RNG */
+
+    printf("Generating public/private key pair\n");
+    RSA_WWW_KEY_PAIR(&RNG,65537,&priv,&pub,NULL,NULL);
+
+    printf("Encrypting test string\n");
+    OCT_jstring(&M,(char *)"Hello World\n");
+
+    OAEP_ENCODE(HASH_TYPE_RSA_WWW,&M,&RNG,NULL,&E); /* OAEP encode message m to e  */
+
+    RSA_WWW_ENCRYPT(&pub,&E,&C);     /* encrypt encoded message */
+    printf("Ciphertext= ");
+    OCT_output(&C);
+
+    printf("Decrypting test string\n");
+    RSA_WWW_DECRYPT(&priv,&C,&ML);   /* ... and then decrypt it */
+
+    OAEP_DECODE(HASH_TYPE_RSA_WWW,NULL,&ML);    /* decode it */
+    OCT_output_string(&ML);
+
+
+    if (!OCT_comp(&M,&ML))
+    {
+        printf("FAILURE RSA Encryption failed");
+        return 1;
+    }
+
+    printf("Signing message\n");
+    PKCS15(HASH_TYPE_RSA_WWW,&M,&C);
+
+    RSA_WWW_DECRYPT(&priv,&C,&S); /* create signature in S */
+
+    printf("Signature= ");
+    OCT_output(&S);
+
+    RSA_WWW_ENCRYPT(&pub,&S,&ML);
+
+    if (OCT_comp(&C,&ML))
+    {
+        printf("Signature is valid\n");
+    }
+    else
+    {
+        printf("FAILURE RSA Signature Verification failed");
+        return 1;
+    }
+
+    KILL_CSPRNG(&RNG);
+    RSA_WWW_PRIVATE_KEY_KILL(&priv);
+
+    OCT_clear(&M);
+    OCT_clear(&ML);   /* clean up afterwards */
+    OCT_clear(&C);
+    OCT_clear(&RAW);
+    OCT_clear(&E);
+
+    printf("SUCCESS\n");
   printf("Done\n");
   return 0;
 }
