@@ -10,7 +10,7 @@ include(settings.cmake)
 
 project(capstone C CXX ASM)
 
-add_subdirectory(apps/hello-world)
+add_subdirectory(apps/simple-tls)
 
 include(simulation)
 if(KernelSel4ArchX86_64)

@@ -20,15 +20,15 @@ function(includeGlobalComponents)
     global_components_import_project()
 endfunction()
 
-project(hello-world C)
+project(simple-tls C)
 
 set(projects_dir "${CMAKE_SOURCE_DIR}/../../projects")
 set(crypto_path "${projects_dir}/crypto")
 
 DeclareCAmkESComponent(
-    HelloWorld 
+    SimpleTLS
     SOURCES
-        components/HelloWorld/src/hello-world.c
+        components/SimpleTLS/src/*
         ${crypto_path}/src/hashes/sha3.c
         ${crypto_path}/src/hashes/sha3_test.c
         ${crypto_path}/src/misc/compare_testvector.c
@@ -36,6 +36,6 @@ DeclareCAmkESComponent(
     INCLUDES
         ${crypto_path}/src/headers
 )
-DeclareCAmkESRootserver(hello-world.camkes)
+DeclareCAmkESRootserver(simple-tls.camkes)
 
 GenerateCAmkESRootserver()

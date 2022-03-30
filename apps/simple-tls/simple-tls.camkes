@@ -6,12 +6,12 @@
 
 import <std_connector.camkes>;
 
-component HelloWorld {
+component SimpleTLS {
   control;
 }
 
 assembly {
   composition {
-    component HelloWorld helloworld;
+    component SimpleTLS simpleTLS;
   }
 }

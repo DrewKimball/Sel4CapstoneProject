@@ -5,7 +5,8 @@
 #include <memory.h>
 #include <tomcrypt.h>
 
-int run(void) {
+# To run as root process, remove the _test postfix.
+int run_test(void) {
   printf("\nTesting Crypto Library:\n\n");
    unsigned char buf[200], hash[512 / 8];
    int i;
