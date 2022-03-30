@@ -21,51 +21,63 @@ const unsigned char exampleClientHelloPacket[] = {
     0x01, 0x05, 0x03, 0x06, 0x01, 0x06, 0x03, 0x02, 0x01, 0x02, 
     0x03, 0xff, 0x01, 0x00, 0x01, 0x00, 0x00, 0x12, 0x00, 0x00};
 
-int parseClientHello(const unsigned char* buf, int len) {
+int parseClientHello(TLSSession* session, const unsigned char* buf, int len) {
   if (len < 40) // Minimum length of a client hello.
     return 0;
+  session->clientHello.rawBytes = len;
+  memcpy(session->clientHello.raw, buf, len);
 
   int idx = 0;
 
   // First two bytes: ProtocolVersion
   // TLS 1.2 uses 3, 3
-  int tlsVersion = (buf[idx]<<1) | buf[idx+1];
+  session->clientHello.protocolVersion = (buf[idx]<<1) | buf[idx+1];
   idx += 2;
 
   // Next 32 bytes: Client Random
-  unsigned char* clientRandom = (unsigned char*) calloc(32, 1);
-  memcpy(clientRandom, buf+idx, 32);
+  memcpy(session->clientHello.random, buf+idx, 32);
   idx += 32;
 
   // Variable Length: SessionID
   // If nonzero, indicates resuming previous session
   int sessionIDLen = buf[idx++];
+  session->clientHello.sessionIDBytes = sessionIDLen;
   if (idx+sessionIDLen > len)
     return 0;
-  unsigned char* sessionID = (unsigned char*)calloc(sessionIDLen+1, 1);
+  session->clientHello.sessionID = (unsigned char*) calloc(sessionIDLen+1, 1);
   if (sessionIDLen) {
-    memcpy(sessionID, buf+idx, sessionIDLen);
+    memcpy(session->clientHello.sessionID, buf+idx, sessionIDLen);
   }
   idx += sessionIDLen;
 
   // Variable Length: supported cipher suites (each two bytes)
   // Watch out for GREASE compatibility checks.
   int cipherSuitesLen = (buf[idx]<<1) | buf[idx+1];
+  session->clientHello.cipherSuiteBytes = cipherSuitesLen;
   idx += 2;
   if (idx+cipherSuitesLen > len)
     return 0;
+  if (cipherSuitesLen)
+    memcpy(session->clientHello.cipherSuites, buf+idx, cipherSuitesLen);
+  int foundSuite = 0;
   for (int i = 0; i < cipherSuitesLen; i += 2) {
-    int cipherSuite = (buf[idx]<<1) | buf[idx+1]; // TODO: do something with this.
+    int cipherSuite = (buf[idx]<<1) | buf[idx+1];
+    if (cipherSuite == CIPHER_SUITE)
+      foundSuite = 1;
     idx += 2;
   }
+  if (!foundSuite)
+    return 0; // Only TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA implemented.
 
   // Variable Length: compression methods
   int compressionLen = buf[idx++];
+  session->clientHello.compressionBytes = compressionLen;
   if (idx+compressionLen > len)
     return 0;
-  for (int i = 0; i < compressionLen; i++) {
-    int compressionMethod = buf[idx++];
-  }
+  if (compressionLen)
+    memcpy(session->clientHello.compMethods, buf+idx, compressionLen);
+  // Never use compression.
+  idx += compressionLen;
 
   // Variable Length: extensions
   // A server MUST accept ClientHello messages both with and without
@@ -73,15 +85,18 @@ int parseClientHello(const unsigned char* buf, int len) {
   // that the amount of data in the message precisely matches one of
   // these formats; if not, then it MUST send a fatal "decode_error" alert.
   int extensionsLen = (buf[idx]) | buf[idx+1];
+  session->clientHello.extensionBytes = extensionsLen;
   idx += 2;
   if (idx+extensionsLen > len)
     return 0;
+  if (extensionsLen)
+    memcpy(session->clientHello.extensions, buf+idx, extensionsLen);
   // TODO: parse extensions
 
   return 1;
 }
 
-int parseTLSHandshake(const unsigned char* buf, int len) {
+int parseTLSHandshake(TLSSession* session, const unsigned char* buf, int len) {
   if (len < 4) // Length of a handshake header.
     return 0;
 
@@ -99,8 +114,7 @@ int parseTLSHandshake(const unsigned char* buf, int len) {
       break;
     case 1:
       // Client Hello
-      parseClientHello(buf, handshakeLength);
-      break;
+      return parseClientHello(session, buf, handshakeLength);
     case 2:
       // Server Hello
       break;
@@ -132,7 +146,7 @@ int parseTLSHandshake(const unsigned char* buf, int len) {
   return 1;
 }
 
-int parseTLSRecord(const unsigned char* buf, int len) {
+int parseTLSRecord(TLSSession* session, const unsigned char* buf, int len) {
   if (len < 5) // Length of a record header.
     return 0;
 
@@ -156,8 +170,7 @@ int parseTLSRecord(const unsigned char* buf, int len) {
       break;
     case 22:
       // Handshake
-      parseTLSHandshake(buf, recordLength);
-      break;
+      return parseTLSHandshake(buf, recordLength);
     case 23:
       // Application Data
       break;
