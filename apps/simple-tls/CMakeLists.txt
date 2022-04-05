@@ -28,12 +28,13 @@ set(crypto_path "${projects_dir}/crypto")
 DeclareCAmkESComponent(
     SimpleTLS
     SOURCES
-        components/SimpleTLS/src/*
-        ${crypto_path}/src/hashes/sha3.c
-        ${crypto_path}/src/hashes/sha3_test.c
-        ${crypto_path}/src/misc/compare_testvector.c
-        ${crypto_path}/src/misc/crypt/crypt_argchk.c
+        components/SimpleTLS/src/tls-test.c
+        components/SimpleTLS/src/tls.c
+        components/SimpleTLS/src/parser.c
+        components/SimpleTLS/src/processor.c
+        components/SimpleTLS/src/server.c
     INCLUDES
+        components/SimpleTLS/src
         ${crypto_path}/src/headers
 )
 DeclareCAmkESRootserver(simple-tls.camkes)

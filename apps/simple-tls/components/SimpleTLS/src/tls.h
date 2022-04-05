@@ -47,6 +47,8 @@ struct KeyExchange {
   unsigned char* serverSymKey;    // 16 bytes
   unsigned char* clientIV;        // 16 bytes
   unsigned char* serverIV;        // 16 bytes
+  int rawBytes;
+  unsigned char* raw;
 };
 
 struct TLSSession {

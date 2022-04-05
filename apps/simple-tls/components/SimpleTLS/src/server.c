@@ -52,6 +52,7 @@ int sendServerHello(struct TLSSession* session) {
 
 int sendServerKeyExchange(struct TLSSession* session) {
   struct KeyExchange* ke = &session->keyExchange;
+  struct ServerHello* sh = &session->serverHello;
   int exchangeBytes = 36;
   int handshakeBytes = exchangeBytes + 4; // Add handshake header.
   int totalBytes = handshakeBytes + 5; // Add record header.
@@ -73,10 +74,10 @@ int sendServerKeyExchange(struct TLSSession* session) {
   ke->raw[idx++] = exchangeBytes & 0xff;
 
   // Key Exchange
-  ke->raw[idx++] = 0x03 // named_curve
-  ke->raw[idx++] = 0x00 // Curve x25519
-  ke->raw[idx++] = 0x1d // Curve x25519
-  mcmcpy(ke->raw, ke->serverDHPublic, 32);
+  ke->raw[idx++] = 0x03; // named_curve
+  ke->raw[idx++] = 0x00; // Curve x25519
+  ke->raw[idx++] = 0x1d; // Curve x25519
+  memcpy(ke->raw, ke->serverDHPublic, 32);
   idx += 32;
 
   // TODO: should send the raw over the network!
