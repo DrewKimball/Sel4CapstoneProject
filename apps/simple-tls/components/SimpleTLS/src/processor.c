@@ -10,6 +10,9 @@ const unsigned char SERVER_RANDOM[] = {
 };
 #define SESSION_ID_BYTES 0
 const unsigned char SESSION_ID[] = {0x00};
+#define EXTENSION_BYTES 5
+// Indicates a new message that is not being renegotiated.
+const unsigned char EXTENSIONS[] = {0xff, 0x01, 0x00, 0x01, 0x00};
 
 // Still need to implement:
 //int processClientHandshakeFinished(struct TLSSession* session);
@@ -28,8 +31,34 @@ int processClientHello(struct TLSSession* session) {
   sh->cipherSuite = CIPHER_SUITE;
   sh->compressionMethod = COMPRESSION_METHOD;
   
-  // Not handling extensions for now.
-  sh->extensionBytes = 0;
+  // Not handling extensions for now, except the renegotiation extension.
+  sh->extensionBytes = EXTENSION_BYTES;
+  sh->extensions = (unsigned char*) calloc(EXTENSION_BYTES, 1);
+  memcpy(sh->extensions, EXTENSIONS, EXTENSION_BYTES);
+
+  // Generate the public-private key pair for Diffie-Hellman.
+  struct KeyExchange* ke = &session->keyExchange;
+  int prngDescIdx = find_prng("SOBER-128");
+  if (prngDescIdx == -1)
+    return 0;
+  if (x25519_make_key(session->prng, prngDescIdx, &ke->serverDHPair) != CRYPT_OK)
+    return 0;
+  int dhKeyLen = 32;
+  if (x25519_export(sh->serverDHPrivate, dhKeyLen, PK_PRIVATE, ke->serverDHPair) != CRYPT_OK)
+    return 0;
+  if (x25519_export(sh->serverDHPublic, dhKeyLen, PK_PUBLIC, ke->serverDHPair) != CRYPT_OK)
+    return 0;
 
   return 1;
+}
+
+int processClientKeyExchange(struct TLSSession* session) {
+  // Now that the client DH public key has been received, a shared secret
+  // can be calculated.
+  struct KeyExchange* ke = &session->keyExchange;
+  int premasterLen = 32;
+  curve25519_key clientKey;
+  x25519_import(ke->clientDHPublic, 32, &clientKey);
+  x25519_shared_secret(&ke->serverDHPair, &clientKey, &ke->premasterSecret, premasterLen);
+  // TODO: next is master secret.
 }

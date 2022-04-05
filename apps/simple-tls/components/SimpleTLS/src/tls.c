@@ -3,11 +3,12 @@
 
 // Returns an uninitialized TLSSession with fixed-size
 // allocations performed up-front.
-struct TLSSession newTLSSession() {
+struct TLSSession newTLSSession(prng_state* prng) {
   struct TLSSession session;
   struct ClientHello* ch = &session.clientHello;
   struct ServerHello* sh = &session.serverHello;
   struct KeyExchange* ks = &session.keyExchange;
+  session.prng = prng;
 
   // Allocate fixed-size buffers.
   session.serverRSAPrivate = (unsigned char*) calloc(32, 1);

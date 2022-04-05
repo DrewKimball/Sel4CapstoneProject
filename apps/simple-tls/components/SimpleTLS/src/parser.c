@@ -4,7 +4,6 @@
 #include "tls.h"
 
 // Still need to implement:
-//int parseClientKeyExchange(struct TLSSession* session, const unsigned char* buf, int len);
 //int parseClientChangeCipherSpec(struct TLSSession* session, const unsigned char* buf, int len);
 //int parseClientHandshakeFinished(struct TLSSession* session, const unsigned char* buf, int len);
 //int parseClientData(struct TLSSession* session, const unsigned char* buf, int len);
@@ -94,8 +93,20 @@ int parseClientHello(struct TLSSession* session, const unsigned char* buf, int l
   return 1;
 }
 
+int parseClientKeyExchange(struct TLSSession* session, const unsigned char* buf, int len) {
+  if (len < 33) // Length of public key plus a byte to specify the length.
+    return 0;
+
+  // Parse key exchange message.
+  if (buf[0] != 0x20)
+    return 0; // Expecting 32 byte public key.
+  memcpy(session->keyExchange.clientDHPublic, buf+1, 32);
+
+  return 1;
+}
+
 int parseTLSHandshake(struct TLSSession* session, const unsigned char* buf, int len) {
-    if (len < 4) // Length of a handshake header.
+  if (len < 4) // Length of a handshake header.
     return 0;
 
   // Parse header.
@@ -133,7 +144,7 @@ int parseTLSHandshake(struct TLSSession* session, const unsigned char* buf, int 
       break;
     case 16:
       // Client Key Exchange
-      break;
+      return parseClientKeyExchange(session, buf, handshakeLength);
     case 20:
       // Finished
       break;

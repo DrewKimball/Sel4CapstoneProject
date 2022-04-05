@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <tomcrypt.h>
 
 #define DEBUG 1
 #define TLS_VERSION 0x0303      // This is a TLS 1.2 implementation
@@ -34,6 +35,7 @@ struct ServerHello {
 };
 
 struct KeyExchange {
+  curve25519_key serverDHPair;    // 32 bytes
   unsigned char* serverDHPrivate; // 32 bytes
   unsigned char* serverDHPublic;  // 32 bytes
   unsigned char* clientDHPublic;  // 32 bytes
@@ -48,6 +50,7 @@ struct KeyExchange {
 };
 
 struct TLSSession {
+  prng_state* prng;
   unsigned char* serverRSAPrivate;  // 32 bytes
   unsigned char* serverRSAPublic;   // 32 bytes
   struct ClientHello clientHello;
@@ -59,7 +62,7 @@ struct TLSSession {
 
 // Returns an uninitialized TLSSession with fixed-size
 // allocations performed up-front.
-struct TLSSession newTLSSession();
+struct TLSSession newTLSSession(prng_state* prng);
 
 // Frees all allocated fields of the TLSSession.
 void freeTLSSession(struct TLSSession* session);
@@ -77,6 +80,7 @@ int parseClientCloseNotify(struct TLSSession* session, const unsigned char* buf,
 // Functions for calculating session variables after messages
 // have been received from the client.
 int processClientHello(struct TLSSession* session);
+int processClientKeyExchange(struct TLSSession* session);
 int processClientHandshakeFinished(struct TLSSession* session);
 int processClientData(struct TLSSession* session);
 int processClientCloseNotify(struct TLSSession* session);
